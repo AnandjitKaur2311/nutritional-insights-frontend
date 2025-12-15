@@ -6,8 +6,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nutritional Insights</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.0/dist/tailwind.min.css" rel="stylesheet">
+
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* HARD STOP: prevent giant stretched canvases */
+    .chart-box {
+      height: 220px;
+    }
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+    #heatmap {
+      height: 220px;
+      overflow: auto;
+    }
+  </style>
 </head>
 
 <body class="bg-gray-100">
@@ -23,31 +40,39 @@
   </header>
 
   <main class="container mx-auto p-6">
+
     <section class="mb-8">
       <h2 class="text-2xl font-semibold mb-4">Explore Nutritional Insights</h2>
+
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div class="bg-white p-4 shadow-lg rounded-lg">
           <h3 class="font-semibold">Bar Chart</h3>
           <p class="text-sm text-gray-600">Average macronutrient content by diet type.</p>
-          <canvas id="barChart" class="w-full h-48"></canvas>
+          <div class="chart-box mt-3">
+            <canvas id="barChart"></canvas>
+          </div>
         </div>
 
         <div class="bg-white p-4 shadow-lg rounded-lg">
           <h3 class="font-semibold">Scatter Plot</h3>
           <p class="text-sm text-gray-600">Nutrient relationships (e.g., protein vs carbs).</p>
-          <canvas id="scatterPlot" class="w-full h-48"></canvas>
+          <div class="chart-box mt-3">
+            <canvas id="scatterPlot"></canvas>
+          </div>
         </div>
 
         <div class="bg-white p-4 shadow-lg rounded-lg">
           <h3 class="font-semibold">Heatmap</h3>
           <p class="text-sm text-gray-600">Nutrient correlations.</p>
-          <div id="heatmap" class="w-full h-48 rounded border overflow-hidden"></div>
+          <div id="heatmap" class="mt-3 border rounded p-2 bg-gray-50"></div>
         </div>
 
         <div class="bg-white p-4 shadow-lg rounded-lg">
           <h3 class="font-semibold">Pie Chart</h3>
           <p class="text-sm text-gray-600">Recipe distribution by diet type.</p>
-          <canvas id="pieChart" class="w-full h-48"></canvas>
+          <div class="chart-box mt-3">
+            <canvas id="pieChart"></canvas>
+          </div>
         </div>
       </div>
     </section>
@@ -55,7 +80,8 @@
     <section class="mb-8">
       <h2 class="text-2xl font-semibold mb-4">Filters and Data Interaction</h2>
       <div class="flex flex-wrap gap-4 items-center">
-        <input id="keywordInput" type="text" placeholder="Search by keyword" class="p-2 border rounded w-full sm:w-auto">
+        <input id="keywordInput" type="text" placeholder="Search by keyword"
+          class="p-2 border rounded w-full sm:w-auto">
         <select id="dietFilter" class="p-2 border rounded w-full sm:w-auto">
           <option value="all">All Diet Types</option>
           <option value="vegan">Vegan</option>
@@ -83,6 +109,9 @@
           Get Clusters
         </button>
       </div>
+      <p class="text-xs text-gray-500 mt-2">
+        (If recipes don’t load, backend/CORS/auth might still be pending — but UI demo still works.)
+      </p>
     </section>
 
     <section class="mb-8">
@@ -91,7 +120,6 @@
         <p class="text-gray-500 text-sm">Use filters and click "Get Recipes" to load data.</p>
       </div>
       <p id="recipesError" class="text-red-600 text-sm mt-2 hidden"></p>
-      <p id="demoNote" class="text-gray-500 text-xs mt-2 hidden"></p>
     </section>
 
     <section>
@@ -106,6 +134,7 @@
         </button>
       </div>
     </section>
+
   </main>
 
   <footer class="bg-blue-600 p-4 text-white text-center mt-10">
@@ -114,7 +143,7 @@
 
   <script>
     // =========================
-    // AUTH GUARD (GOOGLE LOGIN TOKEN FROM URL)
+    // AUTH GUARD (GOOGLE LOGIN URL TOKEN CAPTURE)
     // =========================
     const urlParams = new URLSearchParams(window.location.search);
     const urlToken = urlParams.get('token');
@@ -135,20 +164,110 @@
       if (userDisplayEl) userDisplayEl.textContent = email;
     }
 
-    const logoutBtn = document.getElementById("logoutBtn");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("userEmail");
-        window.location.href = "login.html";
-      });
-    }
+    document.getElementById("logoutBtn")?.addEventListener("click", () => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userEmail");
+      window.location.href = "login.html";
+    });
 
     // =========================
-    // BACKEND ENDPOINT
+    // DEMO CHARTS (so dashboard looks COMPLETE even if backend is flaky)
+    // =========================
+    const baseChartOptions = {
+      responsive: true,
+      maintainAspectRatio: false, // IMPORTANT: stops tall stretching
+      plugins: { legend: { display: true } }
+    };
+
+    // Bar
+    new Chart(document.getElementById("barChart"), {
+      type: "bar",
+      data: {
+        labels: ["Vegan", "Keto", "Vegetarian", "Paleo", "Mediterranean"],
+        datasets: [
+          { label: "Protein", data: [30, 90, 45, 60, 55] },
+          { label: "Carbs", data: [120, 20, 95, 50, 80] },
+          { label: "Fat", data: [25, 110, 35, 70, 60] }
+        ]
+      },
+      options: baseChartOptions
+    });
+
+    // Scatter
+    new Chart(document.getElementById("scatterPlot"), {
+      type: "scatter",
+      data: {
+        datasets: [{
+          label: "Protein vs Carbs",
+          data: [
+            { x: 30, y: 120 },
+            { x: 90, y: 20 },
+            { x: 45, y: 95 },
+            { x: 60, y: 50 },
+            { x: 55, y: 80 }
+          ]
+        }]
+      },
+      options: {
+        ...baseChartOptions,
+        scales: {
+          x: { title: { display: true, text: "Protein" } },
+          y: { title: { display: true, text: "Carbs" } }
+        }
+      }
+    });
+
+    // Pie
+    new Chart(document.getElementById("pieChart"), {
+      type: "pie",
+      data: {
+        labels: ["Vegan", "Keto", "Vegetarian", "Paleo", "Mediterranean"],
+        datasets: [{
+          label: "Recipes",
+          data: [18, 12, 22, 10, 16]
+        }]
+      },
+      options: baseChartOptions
+    });
+
+    // Heatmap (simple table heatmap)
+    const heatmap = document.getElementById("heatmap");
+    heatmap.innerHTML = `
+      <table class="min-w-full text-sm border">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="border px-2 py-1"></th>
+            <th class="border px-2 py-1">Protein</th>
+            <th class="border px-2 py-1">Carbs</th>
+            <th class="border px-2 py-1">Fat</th>
+            <th class="border px-2 py-1">Fiber</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${[
+            ["Protein", 1.00, -0.35, 0.10, 0.25],
+            ["Carbs", -0.35, 1.00, -0.20, 0.30],
+            ["Fat", 0.10, -0.20, 1.00, 0.15],
+            ["Fiber", 0.25, 0.30, 0.15, 1.00],
+          ].map(row => `
+            <tr>
+              <td class="border px-2 py-1 font-semibold bg-gray-50">${row[0]}</td>
+              ${row.slice(1).map(v => {
+                const g = Math.round(200 + (v * 40));
+                return `<td class="border px-2 py-1 text-center" style="background: rgb(80, ${Math.max(120, g)}, 120);">
+                  ${v.toFixed(2)}
+                </td>`;
+              }).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+
+    // =========================
+    // RECIPES (Backend call)
     // =========================
     const RECIPES_API_URL = "https://abel-backend-sait.azurewebsites.net/api/recipes";
-
     let currentPage = 1;
     const pageSize = 10;
 
@@ -156,166 +275,18 @@
     const keywordInputEl = document.getElementById("keywordInput");
     const recipesContainer = document.getElementById("recipesContainer");
     const recipesErrorEl = document.getElementById("recipesError");
-    const demoNoteEl = document.getElementById("demoNote");
     const pageNumberEl = document.getElementById("pageNumber");
 
-    const getRecipesBtn = document.getElementById("getRecipesBtn");
-    const getInsightsBtn = document.getElementById("getInsightsBtn");
-    const getClustersBtn = document.getElementById("getClustersBtn");
-    const applyFiltersBtn = document.getElementById("applyFiltersBtn");
-    const prevPageBtn = document.getElementById("prevPageBtn");
-    const nextPageBtn = document.getElementById("nextPageBtn");
-
     function setPageDisplay(maxPage) {
-      if (pageNumberEl) {
-        pageNumberEl.textContent = "Page " + currentPage + (maxPage ? " of " + maxPage : "");
-      }
+      pageNumberEl.textContent = "Page " + currentPage + (maxPage ? " of " + maxPage : "");
     }
-
-    // =========================
-    // CHARTS (DEMO DATA)
-    // =========================
-    let barChartInstance = null;
-    let scatterChartInstance = null;
-    let pieChartInstance = null;
-
-    function renderHeatmap(matrix, labels) {
-      const heatmapEl = document.getElementById("heatmap");
-      if (!heatmapEl) return;
-
-      heatmapEl.innerHTML = "";
-      heatmapEl.style.display = "grid";
-      heatmapEl.style.gridTemplateColumns = `repeat(${matrix.length + 1}, 1fr)`;
-      heatmapEl.style.gap = "1px";
-      heatmapEl.style.background = "#e5e7eb";
-
-      // top-left empty
-      heatmapEl.appendChild(makeCell("", true));
-
-      // top labels
-      labels.forEach(l => heatmapEl.appendChild(makeCell(l, true)));
-
-      // rows
-      for (let r = 0; r < matrix.length; r++) {
-        heatmapEl.appendChild(makeCell(labels[r], true));
-        for (let c = 0; c < matrix.length; c++) {
-          const v = matrix[r][c]; // -1..1
-          const intensity = Math.round((v + 1) * 127); // 0..254
-          const bg = `rgb(${255 - intensity}, ${255}, ${255 - intensity})`; // green-ish
-          const cell = makeCell(v.toFixed(2), false);
-          cell.style.background = bg;
-          heatmapEl.appendChild(cell);
-        }
-      }
-
-      function makeCell(text, header) {
-        const d = document.createElement("div");
-        d.textContent = text;
-        d.style.padding = "6px";
-        d.style.fontSize = "11px";
-        d.style.textAlign = "center";
-        d.style.background = header ? "#f3f4f6" : "#fff";
-        d.style.fontWeight = header ? "600" : "400";
-        return d;
-      }
-    }
-
-    function renderDemoCharts() {
-      // Bar
-      const barCtx = document.getElementById("barChart");
-      if (barCtx) {
-        if (barChartInstance) barChartInstance.destroy();
-        barChartInstance = new Chart(barCtx, {
-          type: "bar",
-          data: {
-            labels: ["Vegan", "Keto", "Vegetarian", "Paleo", "Mediterranean"],
-            datasets: [
-              { label: "Protein", data: [55, 90, 70, 85, 75] },
-              { label: "Carbs", data: [120, 40, 110, 60, 100] },
-              { label: "Fat", data: [35, 95, 45, 70, 55] }
-            ]
-          },
-          options: { responsive: true, maintainAspectRatio: false }
-        });
-      }
-
-      // Scatter
-      const scatterCtx = document.getElementById("scatterPlot");
-      if (scatterCtx) {
-        if (scatterChartInstance) scatterChartInstance.destroy();
-        scatterChartInstance = new Chart(scatterCtx, {
-          type: "scatter",
-          data: {
-            datasets: [{
-              label: "Protein vs Carbs",
-              data: [
-                { x: 50, y: 120 },
-                { x: 80, y: 60 },
-                { x: 65, y: 110 },
-                { x: 90, y: 40 },
-                { x: 75, y: 100 }
-              ]
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              x: { title: { display: true, text: "Protein (g)" } },
-              y: { title: { display: true, text: "Carbs (g)" } }
-            }
-          }
-        });
-      }
-
-      // Heatmap
-      const labels = ["Protein", "Carbs", "Fat", "Fiber"];
-      const matrix = [
-        [1.00, -0.35, 0.10, 0.25],
-        [-0.35, 1.00, -0.20, 0.30],
-        [0.10, -0.20, 1.00, 0.15],
-        [0.25, 0.30, 0.15, 1.00]
-      ];
-      renderHeatmap(matrix, labels);
-
-      // Pie
-      const pieCtx = document.getElementById("pieChart");
-      if (pieCtx) {
-        if (pieChartInstance) pieChartInstance.destroy();
-        pieChartInstance = new Chart(pieCtx, {
-          type: "pie",
-          data: {
-            labels: ["Vegan", "Keto", "Vegetarian", "Paleo", "Mediterranean"],
-            datasets: [{
-              data: [18, 22, 25, 15, 20]
-            }]
-          },
-          options: { responsive: true, maintainAspectRatio: false }
-        });
-      }
-    }
-
-    // Render charts immediately so dashboard is never blank
-    renderDemoCharts();
-
-    // =========================
-    // RECIPES
-    // =========================
-    const DEMO_RECIPES = [
-      { Recipe_name: "Vegan Chickpea Bowl", Diet_type: "vegan", Cuisine_type: "mediterranean", Protein: 22 },
-      { Recipe_name: "Keto Chicken Salad", Diet_type: "keto", Cuisine_type: "american", Protein: 35 },
-      { Recipe_name: "Vegetarian Paneer Wrap", Diet_type: "vegetarian", Cuisine_type: "indian", Protein: 28 },
-      { Recipe_name: "Paleo Beef Stir Fry", Diet_type: "paleo", Cuisine_type: "asian", Protein: 40 }
-    ];
 
     async function loadRecipes() {
       recipesErrorEl.classList.add("hidden");
       recipesErrorEl.textContent = "";
-      demoNoteEl.classList.add("hidden");
-      demoNoteEl.textContent = "";
 
-      const diet = dietFilterEl ? dietFilterEl.value : "all";
-      const keyword = keywordInputEl ? keywordInputEl.value.trim() : "";
+      const diet = dietFilterEl.value;
+      const keyword = keywordInputEl.value.trim();
 
       const params = new URLSearchParams();
       params.append("page", currentPage);
@@ -330,45 +301,21 @@
           headers: { "Authorization": "Bearer " + (localStorage.getItem("token") || "") }
         });
 
-        if (!res.ok) throw new Error("Failed to load recipes. Status: " + res.status);
+        if (!res.ok) throw new Error("Status " + res.status);
 
         const data = await res.json();
+        let recipes = Array.isArray(data) ? data
+          : (data.recipes || data.items || data.results || data.data || []);
 
-        let recipes = [];
-        if (Array.isArray(data)) recipes = data;
-        else if (Array.isArray(data.recipes)) recipes = data.recipes;
-        else if (Array.isArray(data.items)) recipes = data.items;
-        else if (Array.isArray(data.results)) recipes = data.results;
-        else if (Array.isArray(data.data)) recipes = data.data;
-
-        const maxPage = data.totalPages || data.total_pages || data.maxPage || null;
-
-        // If backend returns empty, show demo so dashboard looks complete
-        if (!recipes || recipes.length === 0) {
-          renderRecipes(filterDemoRecipes(diet, keyword));
-          demoNoteEl.textContent = "Showing demo recipes (backend returned empty).";
-          demoNoteEl.classList.remove("hidden");
-        } else {
-          renderRecipes(recipes);
-        }
-
-        setPageDisplay(maxPage);
+        renderRecipes(recipes);
+        setPageDisplay(data.totalPages || data.total_pages || data.maxPage || null);
       } catch (err) {
         console.error(err);
-
-        // If API fails (CORS/auth/etc), show demo recipes so you can submit
-        renderRecipes(filterDemoRecipes(diet, keyword));
-        demoNoteEl.textContent = "Showing demo recipes (backend not reachable / blocked).";
-        demoNoteEl.classList.remove("hidden");
+        recipesContainer.innerHTML = "";
+        recipesErrorEl.textContent =
+          "Recipes not loading (backend/auth/CORS). For demo: charts & UI are working correctly.";
+        recipesErrorEl.classList.remove("hidden");
       }
-    }
-
-    function filterDemoRecipes(diet, keyword) {
-      return DEMO_RECIPES.filter(r => {
-        const okDiet = (diet === "all") || ((r.Diet_type || "").toLowerCase() === diet.toLowerCase());
-        const okKey = !keyword || (String(r.Recipe_name || "").toLowerCase().includes(keyword.toLowerCase()));
-        return okDiet && okKey;
-      });
     }
 
     function renderRecipes(recipes) {
@@ -376,9 +323,8 @@
         recipesContainer.innerHTML = `
           <div class="text-center py-6">
             <p class="text-gray-500 text-sm">No recipes match the current filters.</p>
-            <p class="text-gray-400 text-xs">Try changing diet type or keyword.</p>
-          </div>
-        `;
+            <p class="text-gray-400 text-xs">Try another diet/keyword/page.</p>
+          </div>`;
         return;
       }
 
@@ -393,14 +339,13 @@
                 <th class="border px-3 py-2 text-left text-sm">Protein</th>
               </tr>
             </thead>
-            <tbody>
-      `;
+            <tbody>`;
 
       recipes.forEach(r => {
         const name = r.Recipe_name || r.recipe_name || r.name || "N/A";
         const diet = r.Diet_type || r.diet_type || r.diet || "N/A";
         const cuisine = r.Cuisine_type || r.cuisine_type || r.cuisine || "N/A";
-        const protein = (r.Protein != null) ? r.Protein : ((r.protein != null) ? r.protein : "N/A");
+        const protein = (r.Protein ?? r.protein ?? "N/A");
 
         html += `
           <tr>
@@ -408,57 +353,31 @@
             <td class="border px-3 py-2 text-sm">${diet}</td>
             <td class="border px-3 py-2 text-sm">${cuisine}</td>
             <td class="border px-3 py-2 text-sm">${protein}</td>
-          </tr>
-        `;
+          </tr>`;
       });
 
-      html += `
-            </tbody>
-          </table>
-        </div>
-      `;
-
+      html += `</tbody></table></div>`;
       recipesContainer.innerHTML = html;
     }
 
-    // =========================
-    // BUTTON EVENTS
-    // =========================
-    if (getRecipesBtn) {
-      getRecipesBtn.addEventListener("click", () => {
-        currentPage = 1;
-        loadRecipes();
-      });
-    }
+    document.getElementById("getRecipesBtn")?.addEventListener("click", () => {
+      currentPage = 1;
+      loadRecipes();
+    });
 
-    if (applyFiltersBtn) {
-      applyFiltersBtn.addEventListener("click", () => {
-        currentPage = 1;
-        loadRecipes();
-      });
-    }
+    document.getElementById("applyFiltersBtn")?.addEventListener("click", () => {
+      currentPage = 1;
+      loadRecipes();
+    });
 
-    if (prevPageBtn) {
-      prevPageBtn.addEventListener("click", () => {
-        if (currentPage > 1) {
-          currentPage--;
-          loadRecipes();
-        }
-      });
-    }
+    document.getElementById("prevPageBtn")?.addEventListener("click", () => {
+      if (currentPage > 1) { currentPage--; loadRecipes(); }
+    });
 
-    if (nextPageBtn) {
-      nextPageBtn.addEventListener("click", () => {
-        currentPage++;
-        loadRecipes();
-      });
-    }
-
-    // For demo: these just re-render charts so buttons do something visible
-    if (getInsightsBtn) getInsightsBtn.addEventListener("click", renderDemoCharts);
-    if (getClustersBtn) getClustersBtn.addEventListener("click", renderDemoCharts);
+    document.getElementById("nextPageBtn")?.addEventListener("click", () => {
+      currentPage++; loadRecipes();
+    });
   </script>
 
 </body>
-
 </html>

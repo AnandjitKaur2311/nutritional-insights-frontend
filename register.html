@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - Nutritional Insights</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.0/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+  <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
+    <h1 class="text-2xl font-semibold mb-6 text-center">Register</h1>
+
+    <form id="registerForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1" for="regName">Name</label>
+        <input id="regName" type="text" required
+               class="w-full border rounded px-3 py-2" placeholder="Your Name">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1" for="regEmail">Email</label>
+        <input id="regEmail" type="email" required
+               class="w-full border rounded px-3 py-2" placeholder="you@example.com">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1" for="regPassword">Password</label>
+        <input id="regPassword" type="password" required
+               class="w-full border rounded px-3 py-2" placeholder="••••••••">
+      </div>
+
+      <p id="regError" class="text-red-600 text-sm hidden"></p>
+      <p id="regSuccess" class="text-green-600 text-sm hidden"></p>
+
+      <!-- Normal email/password register -->
+      <button type="submit"
+              class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
+        Register
+      </button>
+
+      <!-- 🔹 Register with Google (OAuth – Risto’s backend) -->
+      <button type="button"
+              id="googleRegisterBtn"
+              class="w-full border border-gray-300 py-2 rounded mt-2">
+        Register with Google
+      </button>
+
+      <button type="button"
+              class="w-full border border-gray-300 py-2 rounded mt-2"
+              onclick="window.location.href='login.html'">
+        Go to Login
+      </button>
+    </form>
+  </div>
+
+  <script>
+    const API_BASE = "https://abel-backend-sait.azurewebsites.net/api";
+    // Reuse the same OAuth start URL
+    const GOOGLE_AUTH_URL = API_BASE + "/auth/google";
+
+    // Email/password registration
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById("regName").value.trim();
+      const email = document.getElementById("regEmail").value.trim();
+      const password = document.getElementById("regPassword").value.trim();
+
+      const errorEl = document.getElementById("regError");
+      const successEl = document.getElementById("regSuccess");
+      errorEl.classList.add("hidden");
+      successEl.classList.add("hidden");
+      errorEl.textContent = "";
+      successEl.textContent = "";
+
+      try {
+        const res = await fetch(API_BASE + "/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password })
+        });
+
+        if (!res.ok) {
+          errorEl.textContent = "Registration failed. Try another email or check your input.";
+          errorEl.classList.remove("hidden");
+          return;
+        }
+
+        successEl.textContent = "Registration successful! You can now login.";
+        successEl.classList.remove("hidden");
+
+        // Optional redirect to login after short delay
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1500);
+      } catch (err) {
+        console.error(err);
+        errorEl.textContent = "Network error. Please try again.";
+        errorEl.classList.remove("hidden");
+      }
+    });
+
+    // Google OAuth register (delegated to backend)
+    const googleRegisterBtn = document.getElementById("googleRegisterBtn");
+    if (googleRegisterBtn) {
+      googleRegisterBtn.addEventListener("click", () => {
+        // Starts OAuth flow; backend decides if it's first-time registration or login
+        window.location.href = GOOGLE_AUTH_URL;
+      });
+    }
+  </script>
+</body>
+</html>

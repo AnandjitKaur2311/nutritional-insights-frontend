@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Nutritional Insights</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.0/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+  <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
+    <h1 class="text-2xl font-semibold mb-6 text-center">Login</h1>
+
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1" for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" required
+               class="w-full border rounded px-3 py-2" placeholder="you@example.com">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1" for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" required
+               class="w-full border rounded px-3 py-2" placeholder="••••••••">
+      </div>
+
+      <p id="loginError" class="text-red-600 text-sm hidden"></p>
+
+      <!-- Normal email/password login -->
+      <button type="submit"
+              class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+        Login
+      </button>
+
+      <!-- 🔹 Login with Google (OAuth – Risto’s backend) -->
+      <button type="button"
+              id="googleLoginBtn"
+              class="w-full border border-gray-300 py-2 rounded mt-2">
+        Login with Google
+      </button>
+
+      <button type="button"
+              class="w-full border border-gray-300 py-2 rounded mt-2"
+              onclick="window.location.href='register.html'">
+        Go to Register
+      </button>
+    </form>
+  </div>
+
+  <script>
+    const API_BASE = "https://abel-backend-sait.azurewebsites.net/api";
+    // Risto's future OAuth endpoint
+    const GOOGLE_AUTH_URL = API_BASE + "/auth/google";
+
+    // Email/password login
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value.trim();
+      const errorEl = document.getElementById("loginError");
+      errorEl.classList.add("hidden");
+      errorEl.textContent = "";
+
+      try {
+        const res = await fetch(API_BASE + "/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (!res.ok) {
+          errorEl.textContent = "Login failed. Check your email and password.";
+          errorEl.classList.remove("hidden");
+          return;
+        }
+
+        const data = await res.json();
+
+        // Adjust if backend uses a different field name
+        const token = data.token || data.jwt || data.accessToken;
+        if (!token) {
+          errorEl.textContent = "Login successful but no token received.";
+          errorEl.classList.remove("hidden");
+          return;
+        }
+
+        // Save token + email for protected dashboard
+        localStorage.setItem("token", token);
+        localStorage.setItem("userEmail", email);
+
+        // Go to dashboard
+        window.location.href = "UI-for-project2.html";
+      } catch (err) {
+        console.error(err);
+        errorEl.textContent = "Network error. Please try again.";
+        errorEl.classList.remove("hidden");
+      }
+    });
+
+    // Google OAuth login (delegated to backend)
+    const googleLoginBtn = document.getElementById("googleLoginBtn");
+    if (googleLoginBtn) {
+      googleLoginBtn.addEventListener("click", () => {
+        // This will start the OAuth flow handled by Risto's backend
+        window.location.href = GOOGLE_AUTH_URL;
+      });
+    }
+  </script>
+</body>
+</html>
